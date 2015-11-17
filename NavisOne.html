@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="stylesheet" href="https://viewing.api.autodesk.com/viewingservice/v1/viewers/style.css" type="text/css">
+<script src="https://viewing.api.autodesk.com/viewingservice/v1/viewers/viewer3D.min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>My model</title>
+</head>
+<body>
+<div id = viewer></div>
+
+</body>
+</html>
+
+<script>
+
+    var models = [{
+        name : "NWD Model",
+        urn : "<replace with your document url - use http://models.autodesk.io to quickly upload models if needed>"
+    }];
+
+    function initialize(modelnumber) {
+        if (!modelnumber) {
+            modelnumber = 0;
+        }
+        var options = {
+            'document' : 'urn:' + models[modelnumber].urn,
+            'env':'AutodeskProduction',
+            'getAccessToken': getToken,
+            'refreshToken': getToken,
+        };
+        var viewerElement = document.getElementById('viewer');
+        //var viewer = new Autodesk.Viewing.Viewer3D(viewerElement, {});
+        var viewer = new Autodesk.Viewing.Private.GuiViewer3D(viewerElement, {});
+
+        Autodesk.Viewing.Initializer(options,function() {
+            viewer.initialize();
+            loadDocument(viewer, options.document);
+        });
+    }
+
+    function loadDocument(viewer, documentId) {
+        // Find the first 3d geometry and load that.
+        Autodesk.Viewing.Document.load(documentId, function(doc) {
+            var geometryItems = [];
+            geometryItems = Autodesk.Viewing.Document.getSubItemsWithProperties(doc.getRootItem(), {
+                'type' : 'geometry',
+                'role' : '3d'
+            }, true);
+
+            if (geometryItems.length > 0) {
+                viewer.addEventListener(
+                        Autodesk.Viewing.GEOMETRY_LOADED_EVENT,
+                        onGeometryLoaded);
+                viewer.load(doc.getViewablePath(geometryItems[0]));
+            }
+        }, function(errorMsg) {// onErrorCallback
+            alert("Load Error: " + errorMsg);
+        });
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Model Geometry loaded callback
+    //
+    //////////////////////////////////////////////////////////////////////////
+    function onGeometryLoaded(event) {
+
+        var viewer = event.target;
+
+        viewer.removeEventListener(
+                Autodesk.Viewing.GEOMETRY_LOADED_EVENT,
+                onGeometryLoaded);
+        var guid = Autodesk.Viewing.Private.getParameterByName('guid');
+        viewer.search(guid, function(ids){
+            viewer.select(ids);
+            viewer.fitToView(ids);
+            //viewer.isolate(ids);
+        })
+
+    }
+
+    function getToken() {
+        return "< write your own token>";
+    }
+
+    initialize();
+
+</script>
